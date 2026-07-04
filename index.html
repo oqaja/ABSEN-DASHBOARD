@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Absensi</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+  :root {
+    --primary: #2563eb;
+    --primary-light: #eff6ff;
+    --primary-dark: #1d4ed8;
+    --success: #16a34a;
+    --success-light: #dcfce7;
+    --danger: #dc2626;
+    --danger-light: #fee2e2;
+    --warn-light: #fef9c3;
+    --warn: #ca8a04;
+    --bg: #f1f5f9;
+    --card: #ffffff;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --nav-h: 68px;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: var(--nav-h);
+    overflow-x: hidden;
+  }
+
+  /* ===== PAGES ===== */
+  .page { display: none; min-height: calc(100vh - var(--nav-h)); }
+  .page.active { display: block; }
+
+  /* ===== BOTTOM NAV ===== */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: var(--nav-h);
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    z-index: 100;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 20px;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+    flex: 1;
+  }
+  .nav-item .nav-icon { font-size: 22px; line-height: 1; }
+  .nav-item .nav-label { font-size: 11px; font-weight: 500; color: var(--text-muted); }
+  .nav-item.active .nav-label { color: var(--primary); font-weight: 700; }
+  .nav-item.active .nav-icon { transform: scale(1.1); }
+
+  /* ===== CARDS ===== */
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+  }
+
+  /* ===== SCROLL CONTAINER ===== */
+  .scroll-x {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 4px 2px 8px;
+    scrollbar-width: none;
+  }
+  .scroll-x::-webkit-scrollbar { display: none; }
+
+  /* ===== INPUTS ===== */
+  input, select, textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 16px;
+    font-family: inherit;
+    background: #fff;
+    color: var(--text);
+    margin-bottom: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+  textarea { resize: vertical; min-height: 80px; }
+
+  .btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: var(--primary);
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.2s, transform 0.1s;
+    letter-spacing: 0.3px;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { background: #94a3b8; cursor: not-allowed; }
+  .btn-secondary { background: #64748b; }
+  .btn-outline {
+    background: transparent;
+    border: 1.5px solid var(--primary);
+    color: var(--primary);
+  }
+
+  .status-box {
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    text-align: center;
+    margin-top: 8px;
+    font-size: 14px;
+  }
+  .status-ok { background: var(--success-light); color: var(--success); }
+  .status-fail { background: var(--danger-light); color: var(--danger); }
+  .info-text { font-size: 13px; color: var(--text-muted); text-align: center; margin: 6px 0 12px; }
+
+  /* =============================
+     PAGE: HOMEPAGE
+  ============================= */
+  #page-home { padding: 16px; }
+
+  .home-top {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .greeting-card {
+    flex: 1;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    border-radius: var(--radius);
+    padding: 16px;
+    color: white;
+    box-shadow: 0 4px 16px rgba(37,99,235,0.3);
+  }
+  .greeting-card .waktu { font-size: 12px; opacity: 0.8; margin-bottom: 4px; font-weight: 500; }
+  .greeting-card .ucapan { font-size: 15px; font-weight: 700; line-height: 1.4; margin-bottom: 6px; }
+  .greeting-card .semangat { font-size: 12px; opacity: 0.85; line-height: 1.5; }
+
+  .countdown-card {
+    width: 90px;
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 14px 10px;
+    text-align: center;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .countdown-card .fire-emoji { font-size: 28px; line-height: 1; }
+  .countdown-card .countdown-num { font-size: 26px; font-weight: 800; color: var(--primary); line-height: 1; }
+  .countdown-card .countdown-label { font-size: 10px; color: var(--text-muted); font-weight: 500; text-align: center; line-height: 1.3; }
+
+  .section-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin: 14px 0 8px;
+  }
+
+  /* DATE SCROLL */
+  .date-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--card);
+    min-width: 52px;
+    cursor: pointer;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+    border: 1.5px solid transparent;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .date-item.today {
+    background: var(--primary);
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+  }
+  .date-item .day-name { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+  .date-item .day-num { font-size: 18px; font-weight: 800; color: var(--text); }
+  .date-item.today .day-name,
+  .date-item.today .day-num { color: white; }
+
+  .coming-soon-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 32px 16px;
+    text-align: center;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+    margin-bottom: 12px;
+    border: 1.5px dashed var(--border);
+  }
+  .coming-soon-card .cs-emoji { font-size: 28px; margin-bottom: 8px; }
+  .coming-soon-card .cs-title { font-size: 14px; font-weight: 700; color: var(--text-muted); }
+  .coming-soon-card .cs-sub { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+
+  /* =============================
+     PAGE: ABSEN
+  ============================= */
+  #page-absen { padding: 16px; }
+  #page-absen h2 { text-align: center; margin-bottom: 16px; font-size: 20px; }
+
+  .step { display: none; }
+  .step.active { display: block; }
+
+  .jenis-label-absen { font-size: 12px; color: var(--text-muted); margin: 12px 0 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .jenis-btn {
+    width: 100%;
+    background: var(--card);
+    color: var(--text);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    text-align: left;
+    padding: 14px 16px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all 0.2s;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .jenis-btn:hover, .jenis-btn:active { border-color: var(--primary); background: var(--primary-light); }
+
+  #qr-reader { width: 100%; border-radius: var(--radius-sm); overflow: hidden; margin-top: 8px; }
+  #camera-view, #captured-photo { width: 100%; border-radius: var(--radius-sm); margin-top: 12px; }
+
+  .upload-area {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-sm);
+    padding: 28px 16px;
+    text-align: center;
+    color: var(--text-muted);
+    cursor: pointer;
+    margin-bottom: 12px;
+    transition: all 0.2s;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .upload-area.has-file { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+  #screenshotPreview { width: 100%; border-radius: var(--radius-sm); margin-top: 8px; display: none; }
+
+  /* =============================
+     PAGE: KALENDER
+  ============================= */
+  #page-kalender { padding: 16px; }
+  #page-kalender h2 { text-align: center; margin-bottom: 16px; font-size: 20px; }
+
+  .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .cal-month { font-size: 16px; font-weight: 800; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-day-label { text-align: center; font-size: 11px; font-weight: 700; color: var(--text-muted); padding: 4px 0; text-transform: uppercase; }
+  .cal-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: default;
+    position: relative;
+  }
+  .cal-day.past { color: #cbd5e1; }
+  .cal-day.today {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.4);
+  }
+  .cal-day.future { color: var(--text); }
+  .cal-day.empty { visibility: hidden; }
+  .cal-day.has-absen::after {
+    content: '';
+    position: absolute;
+    bottom: 3px;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--success);
+  }
+  .cal-day.today.has-absen::after { background: white; }
+
+  .rekap-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+  .rekap-item {
+    background: var(--card);
+    border-radius: var(--radius-sm);
+    padding: 14px 10px;
+    text-align: center;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+  }
+  .rekap-item .rekap-num { font-size: 28px; font-weight: 800; }
+  .rekap-item .rekap-label { font-size: 12px; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
+  .rekap-hadir .rekap-num { color: var(--success); }
+  .rekap-sakit .rekap-num { color: #f59e0b; }
+  .rekap-ijin .rekap-num { color: #8b5cf6; }
+
+  /* =============================
+     PAGE: PROFIL
+  ============================= */
+  #page-profil { padding: 16px; }
+
+  .profil-header { text-align: center; margin-bottom: 20px; }
+  .profil-foto-wrap {
+    position: relative;
+    width: 88px;
+    height: 88px;
+    margin: 0 auto 12px;
+  }
+  .profil-foto {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--primary);
+    background: var(--primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    overflow: hidden;
+  }
+  .profil-foto img { width: 100%; height: 100%; object-fit: cover; }
+  .profil-foto-edit {
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 28px; height: 28px;
+    background: var(--primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 13px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
+  .profil-nama { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+  .profil-sub { font-size: 13px; color: var(--text-muted); }
+
+  .profil-rekap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .profil-stat {
+    background: var(--card);
+    border-radius: var(--radius-sm);
+    padding: 14px 10px;
+    text-align: center;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+  }
+  .profil-stat .stat-num { font-size: 26px; font-weight: 800; }
+  .profil-stat .stat-label { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
+  .stat-hadir .stat-num { color: var(--success); }
+  .stat-sakit .stat-num { color: #f59e0b; }
+  .stat-ijin .stat-num { color: #8b5cf6; }
+
+  .profil-reset {
+    text-align: center;
+    margin-top: 24px;
+  }
+  .profil-reset button {
+    background: none;
+    border: 1.5px solid var(--danger);
+    color: var(--danger);
+    border-radius: var(--radius-sm);
+    padding: 10px 24px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== BOTTOM NAV ===== -->
+<nav class="bottom-nav">
+  <div class="nav-item active" id="nav-home" onclick="goPage('home')">
+    <span class="nav-icon">🏠</span>
+    <span class="nav-label">Home</span>
+  </div>
+  <div class="nav-item" id="nav-absen" onclick="goPage('absen')">
+    <span class="nav-icon">📋</span>
+    <span class="nav-label">Absen</span>
+  </div>
+  <div class="nav-item" id="nav-kalender" onclick="goPage('kalender')">
+    <span class="nav-icon">📅</span>
+    <span class="nav-label">Kalender</span>
+  </div>
+  <div class="nav-item" id="nav-profil" onclick="goPage('profil')">
+    <span class="nav-icon">👤</span>
+    <span class="nav-label">Profil</span>
+  </div>
+</nav>
+
+<!-- ==============================
+     PAGE: HOME
+============================== -->
+<div class="page active" id="page-home">
+  <div style="padding:16px">
+    <div class="home-top">
+      <div class="greeting-card" id="greetingCard">
+        <div class="waktu" id="greetingWaktu">Selamat Pagi ☀️</div>
+        <div class="ucapan" id="greetingNama">Hei!</div>
+        <div class="semangat" id="greetingText">Semangat hari ini!</div>
+      </div>
+      <div class="countdown-card">
+        <div class="fire-emoji">🔥</div>
+        <div class="countdown-num" id="countdownNum">—</div>
+        <div class="countdown-label">hari lagi akhir bulan</div>
+      </div>
+    </div>
+
+    <div class="section-label">Tanggal</div>
+    <div class="scroll-x" id="dateScroll"></div>
+
+    <div class="section-label" style="margin-top:18px">Coming Soon</div>
+    <div class="coming-soon-card">
+      <div class="cs-emoji">📊</div>
+      <div class="cs-title">Fitur baru segera hadir</div>
+      <div class="cs-sub">Coming soon</div>
+    </div>
+    <div class="coming-soon-card">
+      <div class="cs-emoji">🚀</div>
+      <div class="cs-title">Fitur baru segera hadir</div>
+      <div class="cs-sub">Coming soon</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==============================
+     PAGE: ABSEN
+============================== -->
+<div class="page" id="page-absen">
+  <div style="padding:16px">
+    <h2>📋 Absensi</h2>
+
+    <!-- STEP: Registrasi -->
+    <div class="step active" id="step1register">
+      <div class="card">
+        <p class="info-text">HP ini belum terdaftar.<br>Pilih nama dan buat PIN kamu.</p>
+        <select id="namaSelect">
+          <option value="">-- Pilih Nama --</option>
+          <option>Karyo</option><option>Dimas</option><option>Oky</option>
+          <option>Vero</option><option>April</option><option>Yuli</option>
+          <option>Rayhan</option><option>Bimar</option><option>Budi</option>
+        </select>
+        <input type="password" id="pinSetup1" placeholder="Buat PIN (4 digit)" inputmode="numeric" maxlength="4">
+        <input type="password" id="pinSetup2" placeholder="Ulangi PIN" inputmode="numeric" maxlength="4">
+        <div id="registerErrorBox"></div>
+        <button class="btn" onclick="daftarDevice()">Daftarkan HP Ini</button>
+      </div>
+    </div>
+
+    <!-- STEP: Login -->
+    <div class="step" id="step1login">
+      <div class="card">
+        <p class="info-text" id="welcomeText">Selamat datang!</p>
+        <input type="password" id="pinLogin" placeholder="Masukkan PIN" inputmode="numeric" maxlength="4">
+        <div id="loginErrorBox"></div>
+        <button class="btn" onclick="verifikasiPin()">Masuk</button>
+      </div>
+    </div>
+
+    <!-- STEP 2: Pilih Jenis -->
+    <div class="step" id="step2">
+      <div class="card">
+        <p class="info-text">Pilih jenis absensi</p>
+        <div class="jenis-label-absen">Di Kantor</div>
+        <button class="jenis-btn" onclick="pilihJenis('Absen Masuk',true,false,false)">🟢 Absen Masuk</button>
+        <button class="jenis-btn" onclick="pilihJenis('Absen Pulang',true,false,false)">🔴 Absen Pulang</button>
+        <button class="jenis-btn" onclick="pilihJenis('Ijin dari Kantor',true,true,false)">📝 Ijin dari Kantor</button>
+        <div class="jenis-label-absen" style="margin-top:16px">Di Luar Kantor</div>
+        <button class="jenis-btn" onclick="pilihJenis('Dinas Lapangan dari Rumah',false,true,false)">🚗 Dinas Lapangan dari Rumah</button>
+        <button class="jenis-btn" onclick="pilihJenis('Ijin dari Rumah',false,true,false)">📝 Ijin dari Rumah</button>
+        <button class="jenis-btn" onclick="pilihJenis('Pulang dari Luar',false,true,false)">🔚 Pulang dari Luar</button>
+        <button class="jenis-btn" onclick="pilihJenis('Sakit',false,true,true)">🤒 Sakit</button>
+      </div>
+    </div>
+
+    <!-- STEP 2b: Keterangan -->
+    <div class="step" id="step2b">
+      <div class="card">
+        <p class="info-text">Isi keterangan / penjelasan</p>
+        <textarea id="keteranganInput" placeholder="Contoh: Demam sejak semalam, sudah info ke atasan"></textarea>
+        <div id="keteranganErrorBox"></div>
+        <button class="btn" onclick="submitKeterangan()">Lanjut</button>
+      </div>
+    </div>
+
+    <!-- STEP 2c: Upload Screenshot (Sakit) -->
+    <div class="step" id="step2c">
+      <div class="card">
+        <p class="info-text">Upload screenshot chat ke atasan sebagai bukti</p>
+        <div class="upload-area" id="uploadArea" onclick="document.getElementById('screenshotInput').click()">
+          📎 Tap untuk pilih gambar
+        </div>
+        <input type="file" id="screenshotInput" accept="image/*" style="display:none" onchange="previewScreenshot(event)">
+        <img id="screenshotPreview">
+        <div id="uploadErrorBox"></div>
+        <button class="btn" onclick="submitScreenshot()">Lanjut</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Scan QR -->
+    <div class="step" id="step3">
+      <div class="card">
+        <p class="info-text">Scan QR code di lokasi kantor</p>
+        <div id="qr-reader"></div>
+        <div id="qrResultBox"></div>
+      </div>
+    </div>
+
+    <!-- STEP 4: GPS -->
+    <div class="step" id="step4">
+      <div class="card">
+        <p class="info-text">Mengambil lokasi GPS...</p>
+        <div id="locationResultBox"></div>
+      </div>
+    </div>
+
+    <!-- STEP 5: Selfie -->
+    <div class="step" id="step5">
+      <div class="card">
+        <p class="info-text">Ambil foto selfie</p>
+        <video id="camera-view" autoplay playsinline></video>
+        <canvas id="canvas" style="display:none;"></canvas>
+        <img id="captured-photo" style="display:none;">
+        <button class="btn" id="captureBtn" onclick="capturePhoto()">📸 Ambil Foto</button>
+        <button class="btn btn-secondary" id="retakeBtn" style="display:none" onclick="retakePhoto()">Ulangi</button>
+        <button class="btn" id="submitBtn" style="display:none" onclick="submitAbsensi()">✅ Submit Absensi</button>
+      </div>
+    </div>
+
+    <!-- STEP 6: Selesai -->
+    <div class="step" id="step6">
+      <div class="card" style="text-align:center; padding:32px 20px">
+        <div style="font-size:48px; margin-bottom:12px" id="finalEmoji">✅</div>
+        <div class="status-box status-ok" id="finalStatus">Absensi berhasil!</div>
+        <button class="btn btn-outline" style="margin-top:16px" onclick="resetAbsen()">Absen Lagi</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==============================
+     PAGE: KALENDER
+============================== -->
+<div class="page" id="page-kalender">
+  <div style="padding:16px">
+    <h2>📅 Kalender Absensi</h2>
+    <div class="card" style="margin-bottom:14px">
+      <div class="cal-header">
+        <div class="cal-month" id="calMonthLabel">Juli 2026</div>
+        <div style="font-size:12px; color:var(--text-muted)" id="calNamaLabel"></div>
+      </div>
+      <div class="cal-grid" id="calDayLabels"></div>
+      <div class="cal-grid" id="calGrid" style="margin-top:4px"></div>
+    </div>
+
+    <div class="section-label">Rekap Bulan Ini</div>
+    <div class="rekap-grid">
+      <div class="rekap-item rekap-hadir">
+        <div class="rekap-num" id="rekapHadir">—</div>
+        <div class="rekap-label">Hadir</div>
+      </div>
+      <div class="rekap-item rekap-sakit">
+        <div class="rekap-num" id="rekapSakit">—</div>
+        <div class="rekap-label">Sakit</div>
+      </div>
+      <div class="rekap-item rekap-ijin">
+        <div class="rekap-num" id="rekapIjin">—</div>
+        <div class="rekap-label">Ijin</div>
+      </div>
+    </div>
+
+    <div id="kalenderLoadingBox" style="text-align:center; margin-top:16px; color:var(--text-muted); font-size:14px; display:none">
+      Memuat data...
+    </div>
+  </div>
+</div>
+
+<!-- ==============================
+     PAGE: PROFIL
+============================== -->
+<div class="page" id="page-profil">
+  <div style="padding:16px">
+    <div class="profil-header">
+      <div class="profil-foto-wrap">
+        <div class="profil-foto" id="profilFotoEl">👤</div>
+        <div class="profil-foto-edit" onclick="document.getElementById('fotoInput').click()">✏️</div>
+        <input type="file" id="fotoInput" accept="image/*" style="display:none" onchange="gantiProfilFoto(event)">
+      </div>
+      <div class="profil-nama" id="profilNama">—</div>
+      <div class="profil-sub">Karyawan Aktif</div>
+    </div>
+
+    <div class="section-label">Rekap Absensi Bulan Ini</div>
+    <div class="profil-rekap">
+      <div class="profil-stat stat-hadir">
+        <div class="stat-num" id="profilHadir">—</div>
+        <div class="stat-label">Hadir</div>
+      </div>
+      <div class="profil-stat stat-sakit">
+        <div class="stat-num" id="profilSakit">—</div>
+        <div class="stat-label">Sakit</div>
+      </div>
+      <div class="profil-stat stat-ijin">
+        <div class="stat-num" id="profilIjin">—</div>
+        <div class="stat-label">Ijin</div>
+      </div>
+    </div>
+
+    <div class="profil-reset">
+      <button onclick="resetDevice()">🔄 Ganti akun / Reset HP</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== CONFIG =====
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw7mFH-K2ec8VtrQcdDFCSOYlyS-1Yponk4GgTs3G93Fe0G1OPH5RnUe_z4a6H1ow75nA/exec';
+
+// ===== 31 GREETING MESSAGES =====
+const GREETINGS = [
+  { text: "Di era AI kayak sekarang, yang paling dibutuhin tetep manusia yang konsisten. Lo salah satunya! 💪", emoji: "🤖" },
+  { text: "Inflasi boleh naik, tapi semangat lo jangan ikut-ikutan. Tetap gas hari ini!", emoji: "📈" },
+  { text: "Dunia lagi berubah cepet banget — yang adaptif yang survive. Lo udah di sini, itu udah langkah pertama!", emoji: "🌍" },
+  { text: "Remote work atau onsite, yang penting effort-nya nyata. Hadir hari ini = bukti lo serius!", emoji: "💻" },
+  { text: "Di tengah ketidakpastian ekonomi global, orang yang tetap produktif adalah yang paling kuat!", emoji: "🌐" },
+  { text: "Teknologi terus maju, tapi attitude yang bagus gak bisa digantiin robot manapun!", emoji: "🦾" },
+  { text: "Social media penuh drama, tapi lo pilih fokus kerja. Itu class tersendiri!", emoji: "📵" },
+  { text: "Mental health itu penting. Absen hari ini = jaga diri = investasi jangka panjang!", emoji: "🧠" },
+  { text: "Kreator konten lagi booming, tapi foundasi-nya tetap disiplin. Kayak lo!", emoji: "🎬" },
+  { text: "Kolaborasi antar manusia tetap jadi kunci di era otomasi. Semangat kerja tim!", emoji: "🤝" },
+  { text: "Startup atau korporat, hustle culture makin ke sini makin sadar: konsistensi > intensitas!", emoji: "⚡" },
+  { text: "Sustainability bukan cuma soal lingkungan, tapi juga soal energi lo sehari-hari. Jaga ritme!", emoji: "♻️" },
+  { text: "Di zaman scrolling tanpa henti, kemampuan buat fokus itu superpower. Lo lagi melatihnya!", emoji: "🎯" },
+  { text: "Ekonomi kreatif Indonesia lagi naik daun — dan lo bagian dari ekosistemnya!", emoji: "🇮🇩" },
+  { text: "Gak semua orang bisa bangun pagi dan langsung bergerak. Lo bisa — itu beda!", emoji: "🌅" },
+  { text: "Digitalisasi UMKM lagi nge-push semua sektor — termasuk dunia kerja lo. Stay relevant!", emoji: "📱" },
+  { text: "Dunia pasca pandemi ngajarin satu hal: yang flexible yang bertahan. Lo udah buktiin itu!", emoji: "🌱" },
+  { text: "Skill gap lagi jadi isu global, tapi orang yang mau hadir dan belajar gak akan pernah ketinggalan!", emoji: "📚" },
+  { text: "Kepercayaan dibangun dari hal kecil — dan absen tepat waktu adalah salah satunya!", emoji: "🔑" },
+  { text: "Gen Z udah reshape dunia kerja. Lebih authentic, lebih impact-driven. Lo terlahir di era yang tepat!", emoji: "✨" },
+  { text: "Di era information overload, orang yang bisa eksekusi itu langka. Jadilah yang langka!", emoji: "💎" },
+  { text: "Supply chain global lagi volatile, tapi semangat kerja lo gak perlu ikut fluktuasi!", emoji: "📦" },
+  { text: "Greenwashing sudah ketahuan, yang genuine yang bertahan — termasuk soal etos kerja!", emoji: "🌿" },
+  { text: "Side hustle lagi ngetrend, tapi main jobmu tetap pondasi utama. Jaga yang ini dulu!", emoji: "🏗️" },
+  { text: "Konten creator, influencer, atau full-timer — semua butuh disiplin yang sama. Sip, lo udah on track!", emoji: "🎯" },
+  { text: "Wellbeing di tempat kerja jadi prioritas global. Dan lo hadir hari ini — itu bentuk self-respect!", emoji: "❤️" },
+  { text: "Bulan ini masih panjang, tapi setiap hari yang lo isi itu ngumpulin poin kemenangan kecil!", emoji: "🏆" },
+  { text: "Global talent competition semakin ketat, tapi yang paling dicari tetap: yang bisa diandalkan!", emoji: "🌟" },
+  { text: "Harga-harga naik tapi harga dirimu jangan turun. Tetap kerja keras!", emoji: "💪" },
+  { text: "Dunia kerja hybrid udah jadi normal baru — yang penting output-nya. Dan lo udah mulai!", emoji: "🖥️" },
+  { text: "Leadership bukan soal jabatan, tapi soal konsistensi. Dan lo lagi ngebuktiin itu sekarang!", emoji: "👑" },
+];
+
+// ===== STATE =====
+let nama = '';
+let jenisAbsen = '';
+let butuhQr = false;
+let butuhKeterangan = false;
+let isSakit = false;
+let keterangan = '';
+let screenshotBase64 = '';
+let qrResult = '';
+let latitude = '';
+let longitude = '';
+let photoBase64 = '';
+let stream = null;
+let html5QrCode = null;
+let absensiCache = null;
+
+// ===== NAVIGATION =====
+function goPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.getElementById('nav-' + page).classList.add('active');
+
+  if (page === 'home') renderHome();
+  if (page === 'kalender') renderKalender();
+  if (page === 'profil') renderProfil();
+  if (page === 'absen') initAbsenPage();
+
+  window.scrollTo(0, 0);
+}
+
+// ===== INIT =====
+window.addEventListener('DOMContentLoaded', () => {
+  const savedNama = localStorage.getItem('absensi_nama');
+  nama = savedNama || '';
+  renderHome();
+  initAbsenPage();
+});
+
+// ===== HELPER =====
+function hashString(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) & 0xffffffff;
+  return Math.abs(h);
+}
+
+function getWaktu() {
+  const h = new Date().getHours();
+  if (h < 11) return 'Selamat Pagi ☀️';
+  if (h < 15) return 'Selamat Siang 🌤️';
+  if (h < 18) return 'Selamat Sore 🌇';
+  return 'Selamat Malam 🌙';
+}
+
+// ===== HOME =====
+function renderHome() {
+  nama = localStorage.getItem('absensi_nama') || '';
+
+  // Greeting
+  const now = new Date();
+  const dayIndex = now.getDate() - 1;
+  const nameHash = nama ? hashString(nama) : 0;
+  const greetIdx = (dayIndex + nameHash) % GREETINGS.length;
+  const g = GREETINGS[greetIdx];
+
+  document.getElementById('greetingWaktu').textContent = getWaktu();
+  document.getElementById('greetingNama').textContent = nama ? 'Hei, ' + nama + '! ' + g.emoji : 'Hei! ' + g.emoji;
+  document.getElementById('greetingText').textContent = g.text;
+
+  // Countdown akhir bulan
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const remaining = lastDay - now.getDate();
+  document.getElementById('countdownNum').textContent = remaining;
+
+  // Date scroll
+  renderDateScroll();
+}
+
+function renderDateScroll() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const today = now.getDate();
+  const lastDay = new Date(year, month + 1, 0).getDate();
+
+  const dayNames = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+  const container = document.getElementById('dateScroll');
+  container.innerHTML = '';
+
+  for (let d = 1; d <= lastDay; d++) {
+    const dateObj = new Date(year, month, d);
+    const dayName = dayNames[dateObj.getDay()];
+    const isToday = d === today;
+
+    const el = document.createElement('div');
+    el.className = 'date-item' + (isToday ? ' today' : '');
+    el.innerHTML = `<span class="day-name">${dayName}</span><span class="day-num">${d}</span>`;
+    container.appendChild(el);
+
+    if (isToday) {
+      setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' }), 100);
+    }
+  }
+}
+
+// ===== ABSEN PAGE =====
+function initAbsenPage() {
+  const savedNama = localStorage.getItem('absensi_nama');
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  if (savedNama) {
+    nama = savedNama;
+    document.getElementById('welcomeText').textContent = 'Selamat datang, ' + savedNama + '! 👋';
+    document.getElementById('step1login').classList.add('active');
+    document.getElementById('pinLogin').value = '';
+    document.getElementById('loginErrorBox').innerHTML = '';
+  } else {
+    document.getElementById('step1register').classList.add('active');
+  }
+}
+
+function showAbsenStep(id) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step' + id).classList.add('active');
+}
+
+function daftarDevice() {
+  const namaPilih = document.getElementById('namaSelect').value;
+  const pin1 = document.getElementById('pinSetup1').value.trim();
+  const pin2 = document.getElementById('pinSetup2').value.trim();
+  const errBox = document.getElementById('registerErrorBox');
+  errBox.innerHTML = '';
+  if (!namaPilih) { errBox.innerHTML = '<div class="status-box status-fail">Pilih nama dulu</div>'; return; }
+  if (!/^\d{4}$/.test(pin1)) { errBox.innerHTML = '<div class="status-box status-fail">PIN harus 4 digit angka</div>'; return; }
+  if (pin1 !== pin2) { errBox.innerHTML = '<div class="status-box status-fail">PIN tidak cocok, coba lagi</div>'; return; }
+  localStorage.setItem('absensi_nama', namaPilih);
+  localStorage.setItem('absensi_pin', pin1);
+  nama = namaPilih;
+  showAbsenStep(2);
+}
+
+function verifikasiPin() {
+  const pinInput = document.getElementById('pinLogin').value.trim();
+  const savedPin = localStorage.getItem('absensi_pin');
+  const errBox = document.getElementById('loginErrorBox');
+  if (pinInput !== savedPin) {
+    errBox.innerHTML = '<div class="status-box status-fail">PIN salah, coba lagi</div>';
+    return;
+  }
+  errBox.innerHTML = '';
+  showAbsenStep(2);
+}
+
+function pilihJenis(jenis, perluQr, perluKeterangan, sakitMode) {
+  jenisAbsen = jenis;
+  butuhQr = perluQr;
+  butuhKeterangan = perluKeterangan;
+  isSakit = sakitMode;
+  screenshotBase64 = '';
+  keterangan = '';
+  document.getElementById('keteranganInput').value = '';
+  document.getElementById('keteranganErrorBox').innerHTML = '';
+  document.getElementById('uploadErrorBox').innerHTML = '';
+  document.getElementById('uploadArea').textContent = '📎 Tap untuk pilih gambar';
+  document.getElementById('uploadArea').classList.remove('has-file');
+  document.getElementById('screenshotPreview').style.display = 'none';
+
+  if (butuhKeterangan) {
+    showAbsenStep('2b');
+  } else {
+    lanjutSetelahKeterangan();
+  }
+}
+
+function submitKeterangan() {
+  keterangan = document.getElementById('keteranganInput').value.trim();
+  const errBox = document.getElementById('keteranganErrorBox');
+  if (!keterangan) { errBox.innerHTML = '<div class="status-box status-fail">Keterangan wajib diisi</div>'; return; }
+  errBox.innerHTML = '';
+  if (isSakit) { showAbsenStep('2c'); } else { lanjutSetelahKeterangan(); }
+}
+
+function previewScreenshot(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    screenshotBase64 = e.target.result;
+    document.getElementById('screenshotPreview').src = screenshotBase64;
+    document.getElementById('screenshotPreview').style.display = 'block';
+    document.getElementById('uploadArea').textContent = '✅ ' + file.name;
+    document.getElementById('uploadArea').classList.add('has-file');
+  };
+  reader.readAsDataURL(file);
+}
+
+function submitScreenshot() {
+  const errBox = document.getElementById('uploadErrorBox');
+  if (!screenshotBase64) { errBox.innerHTML = '<div class="status-box status-fail">Screenshot wajib diupload sebagai bukti</div>'; return; }
+  errBox.innerHTML = '';
+  lanjutSetelahKeterangan();
+}
+
+function lanjutSetelahKeterangan() {
+  if (butuhQr) { showAbsenStep(3); startQrScanner(); }
+  else { qrResult = ''; showAbsenStep(4); getLocation(); }
+}
+
+function startQrScanner() {
+  if (html5QrCode) { try { html5QrCode.stop(); } catch(e){} }
+  html5QrCode = new Html5Qrcode("qr-reader");
+  html5QrCode.start(
+    { facingMode: "environment" }, { fps: 10, qrbox: 220 },
+    (decodedText) => {
+      qrResult = decodedText;
+      html5QrCode.stop();
+      document.getElementById('qrResultBox').innerHTML = '<div class="status-box status-ok">QR terbaca: ' + decodedText + '</div>';
+      setTimeout(() => { showAbsenStep(4); getLocation(); }, 800);
+    },
+    () => {}
+  ).catch(err => {
+    document.getElementById('qrResultBox').innerHTML = '<div class="status-box status-fail">Gagal akses kamera: ' + err + '</div>';
+  });
+}
+
+function getLocation() {
+  if (!navigator.geolocation) {
+    document.getElementById('locationResultBox').innerHTML = '<div class="status-box status-fail">Browser tidak support GPS</div>';
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      latitude = pos.coords.latitude;
+      longitude = pos.coords.longitude;
+      document.getElementById('locationResultBox').innerHTML =
+        '<div class="status-box status-ok">📍 Lokasi didapat: ' + latitude.toFixed(5) + ', ' + longitude.toFixed(5) + '</div>';
+      if (isSakit) { setTimeout(() => submitAbsensi(), 800); }
+      else { setTimeout(() => { showAbsenStep(5); startCamera(); }, 800); }
+    },
+    (err) => {
+      document.getElementById('locationResultBox').innerHTML = '<div class="status-box status-fail">Gagal ambil lokasi: ' + err.message + '</div>';
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+
+function startCamera() {
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+    .then((s) => { stream = s; document.getElementById('camera-view').srcObject = stream; })
+    .catch((err) => { alert('Gagal akses kamera: ' + err); });
+}
+
+function capturePhoto() {
+  const video = document.getElementById('camera-view');
+  const canvas = document.getElementById('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  photoBase64 = canvas.toDataURL('image/jpeg', 0.7);
+  document.getElementById('captured-photo').src = photoBase64;
+  document.getElementById('captured-photo').style.display = 'block';
+  video.style.display = 'none';
+  document.getElementById('captureBtn').style.display = 'none';
+  document.getElementById('retakeBtn').style.display = 'block';
+  document.getElementById('submitBtn').style.display = 'block';
+}
+
+function retakePhoto() {
+  document.getElementById('camera-view').style.display = 'block';
+  document.getElementById('captured-photo').style.display = 'none';
+  document.getElementById('captureBtn').style.display = 'block';
+  document.getElementById('retakeBtn').style.display = 'none';
+  document.getElementById('submitBtn').style.display = 'none';
+  photoBase64 = '';
+}
+
+function submitAbsensi() {
+  const submitBtn = document.getElementById('submitBtn');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Mengirim...'; }
+  if (isSakit) {
+    document.getElementById('locationResultBox').innerHTML += '<div class="status-box status-ok" style="margin-top:8px">Mengirim data...</div>';
+  }
+
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({
+      nama, jenisAbsen, keterangan, isSakit, latitude, longitude,
+      qrResult, butuhQr,
+      photoBase64: isSakit ? '' : photoBase64,
+      screenshotBase64: isSakit ? screenshotBase64 : ''
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    absensiCache = null; // reset cache biar kalender refresh
+    const statusBox = document.getElementById('finalStatus');
+    if (data.result === 'success') {
+      document.getElementById('finalEmoji').textContent = isSakit ? '🤒' : (butuhQr && data.qrStatus !== 'VALID') ? '⚠️' : '✅';
+      if (isSakit) {
+        statusBox.className = 'status-box status-ok';
+        statusBox.textContent = 'Absensi Sakit berhasil dikirim! Semoga cepat sembuh 🙏';
+      } else if (!butuhQr) {
+        statusBox.className = 'status-box status-ok';
+        statusBox.textContent = '✅ Absensi (' + jenisAbsen + ') berhasil!';
+      } else {
+        statusBox.className = 'status-box ' + (data.qrStatus === 'VALID' ? 'status-ok' : 'status-fail');
+        statusBox.textContent = data.qrStatus === 'VALID'
+          ? '✅ Absensi (' + jenisAbsen + ') berhasil! QR valid.'
+          : '⚠️ Absensi tercatat, tapi QR tidak valid.';
+      }
+    } else {
+      document.getElementById('finalEmoji').textContent = '❌';
+      statusBox.className = 'status-box status-fail';
+      statusBox.textContent = 'Gagal: ' + data.message;
+    }
+    showAbsenStep(6);
+  })
+  .catch(err => {
+    alert('Gagal mengirim: ' + err);
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '✅ Submit Absensi'; }
+  });
+}
+
+function resetAbsen() {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  photoBase64 = ''; qrResult = ''; keterangan = ''; screenshotBase64 = '';
+  document.getElementById('captured-photo').style.display = 'none';
+  document.getElementById('camera-view').style.display = 'block';
+  document.getElementById('captureBtn').style.display = 'block';
+  document.getElementById('retakeBtn').style.display = 'none';
+  document.getElementById('submitBtn').style.display = 'none';
+  document.getElementById('qrResultBox').innerHTML = '';
+  document.getElementById('locationResultBox').innerHTML = '';
+  initAbsenPage();
+}
+
+function resetDevice() {
+  if (!confirm('Reset HP ini? Kamu harus daftar ulang setelah ini.')) return;
+  localStorage.removeItem('absensi_nama');
+  localStorage.removeItem('absensi_pin');
+  localStorage.removeItem('absensi_foto');
+  nama = '';
+  absensiCache = null;
+  goPage('absen');
+}
+
+// ===== KALENDER =====
+async function renderKalender() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const today = now.getDate();
+  const nama = localStorage.getItem('absensi_nama') || '';
+
+  const bulanNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  document.getElementById('calMonthLabel').textContent = bulanNames[month] + ' ' + year;
+  document.getElementById('calNamaLabel').textContent = nama || '';
+
+  // Render day labels
+  const dayLabels = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+  const calDayLabels = document.getElementById('calDayLabels');
+  calDayLabels.innerHTML = '';
+  dayLabels.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cal-day-label';
+    el.textContent = d;
+    calDayLabels.appendChild(el);
+  });
+
+  // Fetch data
+  document.getElementById('kalenderLoadingBox').style.display = 'block';
+  const absensi = await fetchAbsensi(nama, month + 1, year);
+  document.getElementById('kalenderLoadingBox').style.display = 'none';
+
+  // Hitung rekap per hari unik
+  const hadirDates = new Set();
+  const sakitDates = new Set();
+  const ijinDates = new Set();
+  const absenDates = new Set();
+
+  absensi.forEach(row => {
+    const tgl = row.tanggal;
+    const jenis = row.jenisAbsen;
+    absenDates.add(tgl);
+    if (jenis === 'Absen Masuk' || jenis === 'Dinas Lapangan dari Rumah') hadirDates.add(tgl);
+    else if (jenis === 'Sakit') sakitDates.add(tgl);
+    else if (jenis === 'Ijin dari Rumah' || jenis === 'Ijin dari Kantor') ijinDates.add(tgl);
+  });
+
+  document.getElementById('rekapHadir').textContent = hadirDates.size;
+  document.getElementById('rekapSakit').textContent = sakitDates.size;
+  document.getElementById('rekapIjin').textContent = ijinDates.size;
+
+  // Render calendar grid
+  const firstDayOfMonth = new Date(year, month, 1).getDay();
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const calGrid = document.getElementById('calGrid');
+  calGrid.innerHTML = '';
+
+  for (let i = 0; i < firstDayOfMonth; i++) {
+    const el = document.createElement('div');
+    el.className = 'cal-day empty';
+    el.textContent = '';
+    calGrid.appendChild(el);
+  }
+
+  for (let d = 1; d <= lastDay; d++) {
+    const el = document.createElement('div');
+    let cls = 'cal-day';
+    if (d < today) cls += ' past';
+    else if (d === today) cls += ' today';
+    else cls += ' future';
+    if (absenDates.has(d)) cls += ' has-absen';
+    el.className = cls;
+    el.textContent = d;
+    calGrid.appendChild(el);
+  }
+
+  // Update profil rekap juga
+  document.getElementById('profilHadir').textContent = hadirDates.size;
+  document.getElementById('profilSakit').textContent = sakitDates.size;
+  document.getElementById('profilIjin').textContent = ijinDates.size;
+}
+
+async function fetchAbsensi(nama, month, year) {
+  if (absensiCache) return absensiCache;
+  if (!nama) return [];
+  try {
+    const url = SCRIPT_URL + '?action=getAbsensi&nama=' + encodeURIComponent(nama) + '&month=' + month + '&year=' + year;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.result === 'success') {
+      absensiCache = data.data;
+      return data.data;
+    }
+  } catch(e) {
+    console.error('Gagal fetch absensi:', e);
+  }
+  return [];
+}
+
+// ===== PROFIL =====
+function renderProfil() {
+  const savedNama = localStorage.getItem('absensi_nama') || '—';
+  const savedFoto = localStorage.getItem('absensi_foto');
+  document.getElementById('profilNama').textContent = savedNama;
+
+  const fotoEl = document.getElementById('profilFotoEl');
+  if (savedFoto) {
+    fotoEl.innerHTML = '<img src="' + savedFoto + '" alt="foto profil">';
+  } else {
+    fotoEl.textContent = '👤';
+  }
+
+  // Fetch rekap kalau belum ada
+  const now = new Date();
+  const nama = localStorage.getItem('absensi_nama') || '';
+  if (nama && !absensiCache) {
+    fetchAbsensi(nama, now.getMonth() + 1, now.getFullYear()).then(absensi => {
+      const hadirDates = new Set();
+      const sakitDates = new Set();
+      const ijinDates = new Set();
+      absensi.forEach(row => {
+        const tgl = row.tanggal;
+        const jenis = row.jenisAbsen;
+        if (jenis === 'Absen Masuk' || jenis === 'Dinas Lapangan dari Rumah') hadirDates.add(tgl);
+        else if (jenis === 'Sakit') sakitDates.add(tgl);
+        else if (jenis === 'Ijin dari Rumah' || jenis === 'Ijin dari Kantor') ijinDates.add(tgl);
+      });
+      document.getElementById('profilHadir').textContent = hadirDates.size;
+      document.getElementById('profilSakit').textContent = sakitDates.size;
+      document.getElementById('profilIjin').textContent = ijinDates.size;
+    });
+  }
+}
+
+function gantiProfilFoto(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const dataUrl = e.target.result;
+    localStorage.setItem('absensi_foto', dataUrl);
+    document.getElementById('profilFotoEl').innerHTML = '<img src="' + dataUrl + '" alt="foto profil">';
+  };
+  reader.readAsDataURL(file);
+}
+</script>
+</body>
+</html>
