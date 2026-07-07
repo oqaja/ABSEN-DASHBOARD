@@ -209,10 +209,16 @@
   /* CHART */
   .chart-wrap { position: relative; height: 200px; margin-top: 4px; }
 
-  /* RIWAYAT ABSENSI (baru, di Profil) */
+  /* RIWAYAT ABSENSI (baru, di Profil) — dikelompokkan per hari */
+  .riwayat-day-card {
+    background: var(--card); border-radius: var(--radius);
+    border: 1px solid var(--border); padding: 14px 16px 4px; margin-bottom: 12px;
+  }
+  .riwayat-day-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .riwayat-day-title { font-size: 13px; font-weight: 800; color: var(--text); text-transform: uppercase; letter-spacing: 0.4px; }
   .riwayat-item {
     display: flex; align-items: center; gap: 12px;
-    padding: 12px 4px; border-bottom: 1px solid var(--border);
+    padding: 12px 0; border-bottom: 1px solid var(--border);
   }
   .riwayat-item:last-child { border-bottom: none; }
   .riwayat-icon {
@@ -424,9 +430,7 @@
 
     <!-- Riwayat Absensi -->
     <div class="section-label">Riwayat Absensi</div>
-    <div class="card" style="margin-bottom:14px">
-      <div id="riwayatList"></div>
-    </div>
+    <div id="riwayatList"></div>
 
     <div id="profilLoadingBox" class="loading-text" style="display:none">Memuat data...</div>
 
@@ -846,28 +850,53 @@ async function renderProfil() {
 function renderRiwayat(absensi) {
   const container = document.getElementById('riwayatList');
   if (!absensi.length) {
-    container.innerHTML = '<div class="riwayat-empty">Belum ada absensi bulan ini.</div>';
+    container.innerHTML = '<div class="card"><div class="riwayat-empty">Belum ada absensi bulan ini.</div></div>';
     return;
   }
-  const sorted = [...absensi].sort((a, b) => {
-    if (b.tanggal !== a.tanggal) return b.tanggal - a.tanggal;
-    if (b.jam !== a.jam) return b.jam - a.jam;
-    return b.menit - a.menit;
+
+  // Kelompokkan per tanggal
+  const byDate = new Map();
+  absensi.forEach(row => {
+    if (!byDate.has(row.tanggal)) byDate.set(row.tanggal, []);
+    byDate.get(row.tanggal).push(row);
   });
-  container.innerHTML = sorted.map(row => {
-    const icon = JENIS_ICON[row.jenisAbsen] || '📌';
-    const jam = String(row.jam).padStart(2, '0') + ':' + String(row.menit).padStart(2, '0');
-    const lambatTag = (row.jenisAbsen === 'Absen Masuk' && isLambat(row.jam, row.menit))
-      ? '<span class="riwayat-lambat">Terlambat</span>' : '';
-    const ketHtml = row.keterangan
-      ? '<div class="riwayat-ket">' + escapeHtml(row.keterangan) + '</div>' : '';
-    return `<div class="riwayat-item">
-      <div class="riwayat-icon">${icon}</div>
-      <div class="riwayat-info">
-        <div class="riwayat-jenis">${escapeHtml(row.jenisAbsen)}${lambatTag}</div>
-        <div class="riwayat-meta">Tgl ${row.tanggal} • ${jam}</div>
-        ${ketHtml}
+
+  const dayNames = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  const now = new Date();
+
+  // Hari terbaru ditampilkan paling atas
+  const sortedDates = [...byDate.keys()].sort((a, b) => b - a);
+
+  container.innerHTML = sortedDates.map(tgl => {
+    // Di dalam satu hari, mulai dari jam paling awal (Absen Masuk dulu)
+    const items = byDate.get(tgl).slice().sort((a, b) => {
+      if (a.jam !== b.jam) return a.jam - b.jam;
+      return a.menit - b.menit;
+    });
+    const dayName = dayNames[new Date(now.getFullYear(), now.getMonth(), tgl).getDay()];
+
+    const itemsHtml = items.map(row => {
+      const icon = JENIS_ICON[row.jenisAbsen] || '📌';
+      const jam = String(row.jam).padStart(2, '0') + ':' + String(row.menit).padStart(2, '0');
+      const lambatTag = (row.jenisAbsen === 'Absen Masuk' && isLambat(row.jam, row.menit))
+        ? '<span class="riwayat-lambat">Terlambat</span>' : '';
+      const ketHtml = row.keterangan
+        ? '<div class="riwayat-ket">' + escapeHtml(row.keterangan) + '</div>' : '';
+      return `<div class="riwayat-item">
+        <div class="riwayat-icon">${icon}</div>
+        <div class="riwayat-info">
+          <div class="riwayat-jenis">${escapeHtml(row.jenisAbsen)}${lambatTag}</div>
+          <div class="riwayat-meta">${jam}</div>
+          ${ketHtml}
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="riwayat-day-card">
+      <div class="riwayat-day-header">
+        <div class="riwayat-day-title">${dayName}, Tgl ${tgl}</div>
       </div>
+      ${itemsHtml}
     </div>`;
   }).join('');
 }
