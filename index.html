@@ -861,10 +861,36 @@ async function fetchAbsensi(nama, month, year) {
   if (!nama || nama === '—') return [];
   try {
     const url = SCRIPT_URL + '?action=getAbsensi&nama=' + encodeURIComponent(nama) + '&month=' + month + '&year=' + year;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.result === 'success') { absensiCache = data.data; return data.data; }
-  } catch(e) { console.error('Fetch error:', e); }
+    console.log('[fetchAbsensi] URL:', url);
+
+    const res = await fetch(url, { redirect: 'follow' });
+    const rawText = await res.text();
+    console.log('[fetchAbsensi] Raw response:', rawText.substring(0, 200));
+
+    // Kalau response bukan JSON (HTML error page), tangkap lebih jelas
+    if (rawText.trim().startsWith('<')) {
+      console.error('[fetchAbsensi] Response berupa HTML, bukan JSON. Apps Script belum di-update atau belum di-deploy ulang.');
+      document.getElementById('profilLoadingBox').textContent = '⚠️ Gagal memuat data. Pastikan Apps Script sudah di-update dan di-deploy ulang.';
+      document.getElementById('profilLoadingBox').style.display = 'block';
+      return [];
+    }
+
+    const data = JSON.parse(rawText);
+    console.log('[fetchAbsensi] Parsed data:', data);
+
+    if (data.result === 'success') {
+      absensiCache = data.data;
+      return data.data;
+    } else {
+      console.error('[fetchAbsensi] Error dari Apps Script:', data.message);
+      document.getElementById('profilLoadingBox').textContent = '⚠️ Error: ' + (data.message || 'Unknown error');
+      document.getElementById('profilLoadingBox').style.display = 'block';
+    }
+  } catch(e) {
+    console.error('[fetchAbsensi] Fetch gagal:', e);
+    document.getElementById('profilLoadingBox').textContent = '⚠️ Gagal koneksi ke server. Cek jaringan atau Apps Script URL.';
+    document.getElementById('profilLoadingBox').style.display = 'block';
+  }
   return [];
 }
 
