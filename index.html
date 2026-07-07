@@ -160,7 +160,7 @@
   .upload-area.has-file { border-color: var(--mint); color: var(--mint); background: var(--primary-light); }
   #screenshotPreview { width: 100%; border-radius: var(--radius-sm); margin-top: 8px; display: none; }
 
-  /* ===== PROFIL (merged kalender) ===== */
+  /* ===== PROFIL ===== */
   #page-profil { padding: 16px; }
   .profil-header { text-align: center; margin-bottom: 20px; padding-top: 8px; }
   .profil-foto-wrap { position: relative; width: 88px; height: 88px; margin: 0 auto 12px; }
@@ -189,7 +189,7 @@
   .s-ijin .s-num { color: var(--purple); }
   .s-lambat .s-num { color: var(--danger); }
 
-  /* CALENDAR */
+  /* CALENDAR (sekarang di Home) */
   .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
   .cal-month { font-size: 16px; font-weight: 800; }
   .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
@@ -208,6 +208,27 @@
 
   /* CHART */
   .chart-wrap { position: relative; height: 200px; margin-top: 4px; }
+
+  /* RIWAYAT ABSENSI (baru, di Profil) */
+  .riwayat-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 4px; border-bottom: 1px solid var(--border);
+  }
+  .riwayat-item:last-child { border-bottom: none; }
+  .riwayat-icon {
+    font-size: 20px; width: 34px; height: 34px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--card-2); border-radius: 50%;
+  }
+  .riwayat-info { flex: 1; min-width: 0; }
+  .riwayat-jenis { font-size: 14px; font-weight: 700; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+  .riwayat-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .riwayat-ket { font-size: 12px; color: var(--text-muted); margin-top: 4px; font-style: italic; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .riwayat-lambat {
+    font-size: 10px; font-weight: 700; color: var(--danger);
+    background: var(--danger-light); padding: 2px 7px; border-radius: 6px;
+  }
+  .riwayat-empty { text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px 0; }
 
   .profil-reset { text-align: center; margin-top: 24px; padding-bottom: 8px; }
   .profil-reset button {
@@ -233,7 +254,7 @@
   </div>
 </nav>
 
-<!-- ===== HOME ===== -->
+<!-- ===== HOME (+ KALENDER) ===== -->
 <div class="page active" id="page-home">
   <div style="padding:16px">
     <div class="home-top">
@@ -250,6 +271,18 @@
     </div>
     <div class="section-label">Tanggal</div>
     <div class="scroll-x" id="dateScroll"></div>
+
+    <div class="section-label" style="margin-top:18px">Kalender</div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="cal-header">
+        <div class="cal-month" id="calMonthLabel">—</div>
+        <div style="font-size:11px; color:var(--text-muted)" id="calNamaLabel"></div>
+      </div>
+      <div class="cal-grid" id="calDayLabels"></div>
+      <div class="cal-grid" id="calGrid" style="margin-top:6px"></div>
+    </div>
+    <div id="homeLoadingBox" class="loading-text" style="display:none">Memuat data...</div>
+
     <div class="section-label" style="margin-top:18px">Coming Soon</div>
     <div class="coming-soon-card">
       <div class="cs-emoji">📊</div>
@@ -357,7 +390,7 @@
   </div>
 </div>
 
-<!-- ===== PROFIL (+ KALENDER) ===== -->
+<!-- ===== PROFIL (+ RIWAYAT ABSENSI) ===== -->
 <div class="page" id="page-profil">
   <div style="padding:16px">
 
@@ -389,15 +422,10 @@
       </div>
     </div>
 
-    <!-- Kalender -->
-    <div class="section-label">Kalender</div>
+    <!-- Riwayat Absensi -->
+    <div class="section-label">Riwayat Absensi</div>
     <div class="card" style="margin-bottom:14px">
-      <div class="cal-header">
-        <div class="cal-month" id="calMonthLabel">—</div>
-        <div style="font-size:11px; color:var(--text-muted)" id="calNamaLabel"></div>
-      </div>
-      <div class="cal-grid" id="calDayLabels"></div>
-      <div class="cal-grid" id="calGrid" style="margin-top:6px"></div>
+      <div id="riwayatList"></div>
     </div>
 
     <div id="profilLoadingBox" class="loading-text" style="display:none">Memuat data...</div>
@@ -409,7 +437,8 @@
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw7mFH-K2ec8VtrQcdDFCSOYlyS-1Yponk4GgTs3G93Fe0G1OPH5RnUe_z4a6H1ow75nA/exec?action=getAbsensi&nama=Oky&month=7&year=2026';
+// URL dasar Apps Script (TANPA query string di sini, query ditambahkan saat fetch)
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw7mFH-K2ec8VtrQcdDFCSOYlyS-1Yponk4GgTs3G93Fe0G1OPH5RnUe_z4a6H1ow75nA/exec';
 
 const GREETINGS = [
   { text: "Di era AI kayak sekarang, yang paling dibutuhin tetep manusia yang konsisten. Lo salah satunya! 💪", emoji: "🤖" },
@@ -444,6 +473,17 @@ const GREETINGS = [
   { text: "Dunia kerja hybrid udah jadi normal baru — yang penting output-nya. Dan lo udah mulai!", emoji: "🖥️" },
   { text: "Leadership bukan soal jabatan, tapi soal konsistensi. Dan lo lagi ngebuktiin itu sekarang!", emoji: "👑" },
 ];
+
+// Icon per jenis absen, dipakai di kartu Riwayat Absensi
+const JENIS_ICON = {
+  'Absen Masuk': '🟢',
+  'Absen Pulang': '🔴',
+  'Ijin dari Kantor': '📝',
+  'Dinas Lapangan dari Rumah': '🚗',
+  'Ijin dari Rumah': '📝',
+  'Pulang dari Luar': '🔚',
+  'Sakit': '🤒'
+};
 
 // STATE
 let nama = '';
@@ -489,8 +529,8 @@ window.addEventListener('DOMContentLoaded', () => {
   initAbsenPage();
 });
 
-// HOME
-function renderHome() {
+// ===== HOME (+ KALENDER) =====
+async function renderHome() {
   nama = localStorage.getItem('absensi_nama') || '';
   const now = new Date();
   const dayIndex = now.getDate() - 1;
@@ -502,6 +542,7 @@ function renderHome() {
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   document.getElementById('countdownNum').textContent = lastDay - now.getDate();
   renderDateScroll();
+  await renderHomeCalendar();
 }
 
 function renderDateScroll() {
@@ -518,6 +559,55 @@ function renderDateScroll() {
     el.innerHTML = `<span class="day-name">${dayNames[new Date(year,month,d).getDay()]}</span><span class="day-num">${d}</span>`;
     container.appendChild(el);
     if (isToday) setTimeout(() => el.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'start' }), 100);
+  }
+}
+
+async function renderHomeCalendar() {
+  const now = new Date();
+  const bulanNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  document.getElementById('calMonthLabel').textContent = bulanNames[now.getMonth()] + ' ' + now.getFullYear();
+  document.getElementById('calNamaLabel').textContent = nama || '';
+
+  // Render label hari
+  const calDayLabels = document.getElementById('calDayLabels');
+  calDayLabels.innerHTML = '';
+  ['Min','Sen','Sel','Rab','Kam','Jum','Sab'].forEach(d => {
+    const el = document.createElement('div'); el.className = 'cal-day-label'; el.textContent = d;
+    calDayLabels.appendChild(el);
+  });
+
+  const calGrid = document.getElementById('calGrid');
+  calGrid.innerHTML = '';
+
+  if (!nama) return; // belum daftar HP, tampilkan kalender kosong
+
+  document.getElementById('homeLoadingBox').style.display = 'block';
+  const absensi = await fetchAbsensi(nama, now.getMonth() + 1, now.getFullYear());
+  document.getElementById('homeLoadingBox').style.display = 'none';
+
+  const absenDates = new Set(), lambatDates = new Set();
+  absensi.forEach(row => {
+    const tgl = row.tanggal, jenis = row.jenisAbsen, jam = row.jam, menit = row.menit;
+    absenDates.add(tgl);
+    if (jenis === 'Absen Masuk' && isLambat(jam, menit)) lambatDates.add(tgl);
+  });
+
+  const today = now.getDate(), year = now.getFullYear(), month = now.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  for (let i = 0; i < firstDay; i++) {
+    const el = document.createElement('div'); el.className = 'cal-day empty'; el.textContent = ''; calGrid.appendChild(el);
+  }
+  for (let d = 1; d <= lastDay; d++) {
+    const el = document.createElement('div');
+    let cls = 'cal-day';
+    if (d < today) cls += ' past';
+    else if (d === today) cls += ' today';
+    else cls += ' future';
+    if (absenDates.has(d)) cls += ' has-absen';
+    if (lambatDates.has(d)) cls += ' lambat';
+    el.className = cls; el.textContent = d;
+    calGrid.appendChild(el);
   }
 }
 
@@ -708,7 +798,7 @@ function resetDevice() {
   goPage('absen');
 }
 
-// PROFIL + KALENDER
+// ===== PROFIL (+ RIWAYAT ABSENSI) =====
 async function renderProfil() {
   const savedNama = localStorage.getItem('absensi_nama') || '—';
   const savedFoto = localStorage.getItem('absensi_foto');
@@ -716,33 +806,21 @@ async function renderProfil() {
   const fotoEl = document.getElementById('profilFotoEl');
   if (savedFoto) { fotoEl.innerHTML = '<img src="' + savedFoto + '">'; } else { fotoEl.textContent = '👤'; }
 
-  // Kalender header
-  const now = new Date();
-  const bulanNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-  document.getElementById('calMonthLabel').textContent = bulanNames[now.getMonth()] + ' ' + now.getFullYear();
-  document.getElementById('calNamaLabel').textContent = savedNama;
-
-  // Render day labels
-  const calDayLabels = document.getElementById('calDayLabels');
-  calDayLabels.innerHTML = '';
-  ['Min','Sen','Sel','Rab','Kam','Jum','Sab'].forEach(d => {
-    const el = document.createElement('div'); el.className = 'cal-day-label'; el.textContent = d;
-    calDayLabels.appendChild(el);
-  });
-
-  if (savedNama === '—') return;
+  if (savedNama === '—') {
+    document.getElementById('riwayatList').innerHTML = '<div class="riwayat-empty">Daftarkan HP dulu di menu Absensi.</div>';
+    return;
+  }
 
   document.getElementById('profilLoadingBox').style.display = 'block';
+  const now = new Date();
   const absensi = await fetchAbsensi(savedNama, now.getMonth() + 1, now.getFullYear());
   document.getElementById('profilLoadingBox').style.display = 'none';
 
   // Hitung rekap
   const hadirDates = new Set(), sakitDates = new Set(), ijinDates = new Set(), lambatDates = new Set();
-  const absenDates = new Set();
 
   absensi.forEach(row => {
     const tgl = row.tanggal, jenis = row.jenisAbsen, jam = row.jam, menit = row.menit;
-    absenDates.add(tgl);
     if (jenis === 'Absen Masuk' || jenis === 'Dinas Lapangan dari Rumah') {
       hadirDates.add(tgl);
       if (jenis === 'Absen Masuk' && isLambat(jam, menit)) lambatDates.add(tgl);
@@ -756,29 +834,48 @@ async function renderProfil() {
   document.getElementById('statIjin').textContent = ijinDates.size;
   document.getElementById('statLambat').textContent = lambatDates.size;
 
-  // Render kalender
-  const today = now.getDate(), year = now.getFullYear(), month = now.getMonth();
-  const firstDay = new Date(year, month, 1).getDay();
-  const lastDay = new Date(year, month + 1, 0).getDate();
-  const calGrid = document.getElementById('calGrid');
-  calGrid.innerHTML = '';
-  for (let i = 0; i < firstDay; i++) {
-    const el = document.createElement('div'); el.className = 'cal-day empty'; el.textContent = ''; calGrid.appendChild(el);
-  }
-  for (let d = 1; d <= lastDay; d++) {
-    const el = document.createElement('div');
-    let cls = 'cal-day';
-    if (d < today) cls += ' past';
-    else if (d === today) cls += ' today';
-    else cls += ' future';
-    if (absenDates.has(d)) cls += ' has-absen';
-    if (lambatDates.has(d)) cls += ' lambat';
-    el.className = cls; el.textContent = d;
-    calGrid.appendChild(el);
-  }
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
 
   // Render chart
-  renderChart(absensi, lastDay, year, month);
+  renderChart(absensi, lastDay, now.getFullYear(), now.getMonth());
+
+  // Render riwayat absensi
+  renderRiwayat(absensi);
+}
+
+function renderRiwayat(absensi) {
+  const container = document.getElementById('riwayatList');
+  if (!absensi.length) {
+    container.innerHTML = '<div class="riwayat-empty">Belum ada absensi bulan ini.</div>';
+    return;
+  }
+  const sorted = [...absensi].sort((a, b) => {
+    if (b.tanggal !== a.tanggal) return b.tanggal - a.tanggal;
+    if (b.jam !== a.jam) return b.jam - a.jam;
+    return b.menit - a.menit;
+  });
+  container.innerHTML = sorted.map(row => {
+    const icon = JENIS_ICON[row.jenisAbsen] || '📌';
+    const jam = String(row.jam).padStart(2, '0') + ':' + String(row.menit).padStart(2, '0');
+    const lambatTag = (row.jenisAbsen === 'Absen Masuk' && isLambat(row.jam, row.menit))
+      ? '<span class="riwayat-lambat">Terlambat</span>' : '';
+    const ketHtml = row.keterangan
+      ? '<div class="riwayat-ket">' + escapeHtml(row.keterangan) + '</div>' : '';
+    return `<div class="riwayat-item">
+      <div class="riwayat-icon">${icon}</div>
+      <div class="riwayat-info">
+        <div class="riwayat-jenis">${escapeHtml(row.jenisAbsen)}${lambatTag}</div>
+        <div class="riwayat-meta">Tgl ${row.tanggal} • ${jam}</div>
+        ${ketHtml}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }
 
 function renderChart(absensi, lastDay, year, month) {
@@ -870,8 +967,7 @@ async function fetchAbsensi(nama, month, year) {
     // Kalau response bukan JSON (HTML error page), tangkap lebih jelas
     if (rawText.trim().startsWith('<')) {
       console.error('[fetchAbsensi] Response berupa HTML, bukan JSON. Apps Script belum di-update atau belum di-deploy ulang.');
-      document.getElementById('profilLoadingBox').textContent = '⚠️ Gagal memuat data. Pastikan Apps Script sudah di-update dan di-deploy ulang.';
-      document.getElementById('profilLoadingBox').style.display = 'block';
+      showLoadingError('⚠️ Gagal memuat data. Pastikan Apps Script sudah di-update dan di-deploy ulang.');
       return [];
     }
 
@@ -883,15 +979,20 @@ async function fetchAbsensi(nama, month, year) {
       return data.data;
     } else {
       console.error('[fetchAbsensi] Error dari Apps Script:', data.message);
-      document.getElementById('profilLoadingBox').textContent = '⚠️ Error: ' + (data.message || 'Unknown error');
-      document.getElementById('profilLoadingBox').style.display = 'block';
+      showLoadingError('⚠️ Error: ' + (data.message || 'Unknown error'));
     }
   } catch(e) {
     console.error('[fetchAbsensi] Fetch gagal:', e);
-    document.getElementById('profilLoadingBox').textContent = '⚠️ Gagal koneksi ke server. Cek jaringan atau Apps Script URL.';
-    document.getElementById('profilLoadingBox').style.display = 'block';
+    showLoadingError('⚠️ Gagal koneksi ke server. Cek jaringan atau Apps Script URL.');
   }
   return [];
+}
+
+function showLoadingError(msg) {
+  ['homeLoadingBox', 'profilLoadingBox'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = msg; el.style.display = 'block'; }
+  });
 }
 
 function gantiProfilFoto(event) {
