@@ -137,6 +137,34 @@
   .coming-soon-card .cs-title { font-size: 14px; font-weight: 700; color: var(--text-muted); }
   .coming-soon-card .cs-sub { font-size: 12px; color: #555560; margin-top: 4px; }
 
+  /* Card batas absen (countdown ke 08:05) */
+  .today-absen-card {
+    background: linear-gradient(135deg, #1a3a32 0%, #0d2a22 100%);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+    border: 1px solid rgba(0,200,150,0.2); text-align: center; transition: all 0.2s;
+  }
+  .today-absen-label { font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 6px; font-weight: 600; }
+  .today-absen-time { font-size: 28px; font-weight: 800; color: var(--mint); letter-spacing: 1px; font-variant-numeric: tabular-nums; }
+  .today-absen-card.countdown-late {
+    background: linear-gradient(135deg, #3a1a1a 0%, #2a0d0d 100%);
+    border-color: rgba(255,92,92,0.3);
+  }
+  .today-absen-card.countdown-late .today-absen-time { color: var(--danger); font-size: 17px; }
+
+  /* Card ringkasan jam masuk pertama & pulang terakhir hari ini */
+  .today-summary-row { display: flex; gap: 10px; margin-bottom: 12px; }
+  .today-summary-card {
+    flex: 1; background: var(--card); border-radius: var(--radius); padding: 14px;
+    border: 1px solid var(--border); display: flex; align-items: center; gap: 10px; min-width: 0;
+  }
+  .today-summary-icon {
+    font-size: 20px; width: 40px; height: 40px; border-radius: 50%; background: var(--card-2);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .today-summary-info { min-width: 0; }
+  .today-summary-label { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+  .today-summary-jam { font-size: 18px; font-weight: 800; margin-top: 2px; }
+
   /* ===== ABSEN ===== */
   #page-absen { padding: 16px; }
   #page-absen h2 { text-align: center; margin-bottom: 16px; font-size: 20px; }
@@ -277,6 +305,28 @@
     </div>
     <div class="section-label">Tanggal</div>
     <div class="scroll-x" id="dateScroll"></div>
+
+    <div class="today-absen-card" id="countdownAbsenCard" style="display:none">
+      <div class="today-absen-label" id="countdownAbsenLabel">Sisa waktu sebelum batas absen (08:05)</div>
+      <div class="today-absen-time" id="countdownAbsenTime">--:--:--</div>
+    </div>
+
+    <div class="today-summary-row" id="todaySummaryWrap" style="display:none">
+      <div class="today-summary-card">
+        <div class="today-summary-icon">🚶</div>
+        <div class="today-summary-info">
+          <div class="today-summary-label">Masuk Pertama</div>
+          <div class="today-summary-jam" id="todayMasukJam">--:--</div>
+        </div>
+      </div>
+      <div class="today-summary-card">
+        <div class="today-summary-icon">🏃</div>
+        <div class="today-summary-info">
+          <div class="today-summary-label">Pulang Terakhir</div>
+          <div class="today-summary-jam" id="todayPulangJam">--:--</div>
+        </div>
+      </div>
+    </div>
 
     <div class="section-label" style="margin-top:18px">Kalender</div>
     <div class="card" style="margin-bottom:14px">
@@ -442,7 +492,7 @@
 
 <script>
 // URL dasar Apps Script (TANPA query string di sini, query ditambahkan saat fetch)
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw7mFH-K2ec8VtrQcdDFCSOYlyS-1Yponk4GgTs3G93Fe0G1OPH5RnUe_z4a6H1ow75nA/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzkn2WiMz8odZt3EDZX5MwVDPITiFQ9Qvcm2JsZ_E8qYsxUnWk-fkgj-dWhNiU_Oj8E/exec';
 
 const GREETINGS = [
   { text: "Di era AI kayak sekarang, yang paling dibutuhin tetep manusia yang konsisten. Lo salah satunya! 💪", emoji: "🤖" },
@@ -529,6 +579,7 @@ function goPage(page) {
 // INIT
 window.addEventListener('DOMContentLoaded', () => {
   nama = localStorage.getItem('absensi_nama') || '';
+  updateCountdownCard();
   renderHome();
   initAbsenPage();
 });
@@ -547,6 +598,7 @@ async function renderHome() {
   document.getElementById('countdownNum').textContent = lastDay - now.getDate();
   renderDateScroll();
   await renderHomeCalendar();
+  await renderTodayAbsen();
 }
 
 function renderDateScroll() {
@@ -563,6 +615,71 @@ function renderDateScroll() {
     el.innerHTML = `<span class="day-name">${dayNames[new Date(year,month,d).getDay()]}</span><span class="day-num">${d}</span>`;
     container.appendChild(el);
     if (isToday) setTimeout(() => el.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'start' }), 100);
+  }
+}
+
+function fmtJam(jam, menit) {
+  return String(jam).padStart(2, '0') + ':' + String(menit).padStart(2, '0');
+}
+
+// Countdown ke batas absen 08:05, Senin-Sabtu. Minggu disembunyikan.
+function updateCountdownCard() {
+  const card = document.getElementById('countdownAbsenCard');
+  if (!card) return;
+  const now = new Date();
+  const day = now.getDay(); // 0 = Minggu
+
+  if (day === 0) {
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = 'block';
+
+  const label = document.getElementById('countdownAbsenLabel');
+  const timeEl = document.getElementById('countdownAbsenTime');
+  const deadline = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 5, 0);
+  const diff = deadline - now;
+
+  if (diff <= 0) {
+    card.classList.add('countdown-late');
+    label.textContent = 'Batas absen masuk (08:05)';
+    timeEl.textContent = '⚠️ Sudah lewat batas';
+  } else {
+    card.classList.remove('countdown-late');
+    const totalSec = Math.floor(diff / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    label.textContent = 'Sisa waktu sebelum batas absen (08:05)';
+    timeEl.textContent = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+}
+setInterval(updateCountdownCard, 1000);
+
+// Ringkasan absen pertama & terakhir hari ini
+async function renderTodayAbsen() {
+  const wrap = document.getElementById('todaySummaryWrap');
+  if (!nama) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'flex';
+
+  const now = new Date();
+  const absensi = await fetchAbsensi(nama, now.getMonth() + 1, now.getFullYear());
+  const todayRows = absensi
+    .filter(r => r.tanggal === now.getDate())
+    .slice()
+    .sort((a, b) => (a.jam !== b.jam ? a.jam - b.jam : a.menit - b.menit));
+
+  const masukEl = document.getElementById('todayMasukJam');
+  const pulangEl = document.getElementById('todayPulangJam');
+
+  if (todayRows.length) {
+    const first = todayRows[0];
+    const last = todayRows[todayRows.length - 1];
+    masukEl.textContent = fmtJam(first.jam, first.menit);
+    pulangEl.textContent = todayRows.length > 1 ? fmtJam(last.jam, last.menit) : '--:--';
+  } else {
+    masukEl.textContent = '--:--';
+    pulangEl.textContent = '--:--';
   }
 }
 
