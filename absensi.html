@@ -1187,7 +1187,8 @@ function countWorkingDaysInMonth(year, month) {
 }
 
 function hitungLevelDanBar(allData) {
-  if (!allData.length) return { level: 0, persen: 0 };
+  // Penilaian Level & progress bar dimulai dari sini, bukan dari absen paling awal
+  const START_YEAR = 2026, START_MONTH = 7; // Juli 2026
 
   // Kelompokkan per bulan
   const byMonth = new Map();
@@ -1198,11 +1199,8 @@ function hitungLevelDanBar(allData) {
   });
 
   const now = new Date();
-  const firstKey = [...byMonth.keys()].sort()[0];
-  const [firstYear, firstMonth] = firstKey.split('-').map(Number);
-
   let totalWorkingDays = 0, totalHadirDays = 0, level = 0;
-  let y = firstYear, m = firstMonth;
+  let y = START_YEAR, m = START_MONTH;
 
   while (y < now.getFullYear() || (y === now.getFullYear() && m <= now.getMonth() + 1)) {
     const key = y + '-' + String(m).padStart(2,'0');
