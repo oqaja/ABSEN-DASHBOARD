@@ -474,6 +474,7 @@
     <div class="profil-bar-wrap">
       <div class="profil-bar-fill" id="profilBarFill"></div>
     </div>
+    <div id="profilLevelHint" style="display:none; font-size:10px; color:var(--danger); margin-top:6px; font-weight:600;"></div>
   </div>
 </div>
 
@@ -954,10 +955,17 @@ async function renderProfil() {
   document.getElementById('profilLoadingBox').style.display = 'none';
 
   // Hitung level & bar dari histori semua bulan
-  const allAbsensi = await fetchAllAbsensi(savedNama);
-  const { level, persen } = hitungLevelDanBar(allAbsensi);
+  const allResult = await fetchAllAbsensi(savedNama);
+  const { level, persen } = hitungLevelDanBar(allResult.data);
   document.getElementById('profilLevel').textContent = level;
   document.getElementById('profilBarFill').style.width = persen + '%';
+  const hintEl = document.getElementById('profilLevelHint');
+  if (!allResult.ok) {
+    hintEl.textContent = '⚠️ Level belum bisa dimuat — cek endpoint getAllAbsensi di Apps Script (lihat console)';
+    hintEl.style.display = 'block';
+  } else {
+    hintEl.style.display = 'none';
+  }
 
   // Hitung rekap
   const hadirDates = new Set(), sakitDates = new Set(), ijinDates = new Set(), lambatDates = new Set();
@@ -1164,16 +1172,27 @@ function showLoadingError(msg) {
 }
 
 async function fetchAllAbsensi(nama) {
-  if (!nama || nama === '—') return [];
+  if (!nama || nama === '—') return { ok: false, data: [] };
   try {
     const url = SCRIPT_URL + '?action=getAllAbsensi&nama=' + encodeURIComponent(nama);
     const res = await fetch(url, { redirect: 'follow' });
     const rawText = await res.text();
-    if (rawText.trim().startsWith('<')) return [];
-    const data = JSON.parse(rawText);
-    if (data.result === 'success') return data.data;
-  } catch(e) { console.error('fetchAllAbsensi error:', e); }
-  return [];
+
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch (parseErr) {
+      console.error('[fetchAllAbsensi] Response BUKAN JSON — kemungkinan besar Apps Script belum di-deploy ulang dengan action "getAllAbsensi". Raw response:', rawText.substring(0, 200));
+      return { ok: false, data: [] };
+    }
+
+    if (data.result === 'success') return { ok: true, data: data.data };
+    console.error('[fetchAllAbsensi] Error dari Apps Script:', data.message);
+    return { ok: false, data: [] };
+  } catch(e) {
+    console.error('fetchAllAbsensi error:', e);
+    return { ok: false, data: [] };
+  }
 }
 
 function countWorkingDaysInMonth(year, month) {
