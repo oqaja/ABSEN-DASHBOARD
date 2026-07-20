@@ -597,6 +597,7 @@ let latitude = '', longitude = '', photoBase64 = '';
 let stream = null, html5QrCode = null;
 let absensiCache = null;
 let chartInstance = null;
+let sudahAbsenMasukHariIni = false;
 
 function hashString(str) {
   let h = 0;
@@ -680,7 +681,19 @@ function updateCountdownCard() {
   const now = new Date();
   const day = now.getDay(); // 0 = Minggu
 
-  if (day === 0) {
+  if (day === 0) 
+  function updateCountdownCard() {
+  const card = document.getElementById('countdownAbsenCard');
+  if (!card) return;
+  const now = new Date();
+  const day = now.getDay();
+
+  // TAMBAHAN: sembunyikan kalau hari Minggu ATAU sudah absen hari ini
+  if (day === 0 || sudahAbsenMasukHariIni) {
+    card.style.display = 'none';
+    return;
+  }
+  // ... sisa kode tetap sama {
     card.style.display = 'none';
     return;
   }
@@ -722,15 +735,33 @@ async function renderTodayAbsen() {
 
   const masukEl = document.getElementById('todayMasukJam');
   const pulangEl = document.getElementById('todayPulangJam');
+  const masukCard = masukEl.closest('.today-summary-card');
+
+  // Reset warna card masuk
+  masukCard.style.background = '';
+  masukCard.style.borderColor = '';
+  masukEl.style.color = '';
 
   if (todayRows.length) {
     const first = todayRows[0];
     const last = todayRows[todayRows.length - 1];
+
     masukEl.textContent = fmtJam(first.jam, first.menit);
     pulangEl.textContent = todayRows.length > 1 ? fmtJam(last.jam, last.menit) : '--:--';
+
+    // Cek apakah sudah absen hari ini → sembunyikan countdown
+    sudahAbsenMasukHariIni = true;
+
+    // Warna merah kalau Absen Masuk terlambat
+    if (first.jenisAbsen === 'Absen Masuk' && isLambat(first.jam, first.menit)) {
+      masukCard.style.background = 'rgba(255,92,92,0.08)';
+      masukCard.style.borderColor = 'rgba(255,92,92,0.35)';
+      masukEl.style.color = 'var(--danger)';
+    }
   } else {
     masukEl.textContent = '--:--';
     pulangEl.textContent = '--:--';
+    sudahAbsenMasukHariIni = false;
   }
 }
 
